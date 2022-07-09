@@ -1,5 +1,6 @@
 const express = require('express');
 const mysql = require('mysql2');
+//const inputCheck = require('./utils/inputCheck');
 
 const PORT = process.env.PORT || 3001;
 const app = express();
@@ -23,16 +24,82 @@ app.get('/', (req, res) => {
     });
 });
 
-db.query(`SELECT * FROM employee`, (err, rows) => {
-    console.log(rows);
+// Get all employees
+app.get('/api/employees', (req, res) => {
+    const sql = `SELECT * FROM employees`;
+
+    db.query(sql, (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json({
+            message: 'success',
+            data: rows
+        });
+    });
 });
 
-//GET a single employee
-db.query(`SELECT * FROM employee WHERE id = 1`, (err, row) => {
-    if (err) {
-        console.log(err);
+//GET an employee
+app.get('/api/employee/:id', (req, res) => {
+    const sql = `SELECT * FROM employees WHERE id = ?`;
+    const params = [req.params.id];
+  
+    db.query(sql, params, (err, row) => {
+      if (err) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      res.json({
+        message: 'success',
+        data: row
+      });
+    });
+  });
+
+//DELETE an employee
+app.delete('api/employee/:id', (req ,res) => {
+    const sql = `DELETE FROM employees WHERE id = ?`;
+    const params = [req.params.id];
+
+    db.query(sql, params, (err, result) => {
+        if (err) {
+            res.statusMessage(400).json({ error: res.message });
+        } else if (!result.affectedRows) {
+            res.json({
+                message: 'Employee not found!'
+            });
+        } else {
+            res.json({
+                message: 'deleted',
+                changes: result.affectedRows,
+                id: req.params.id
+            });
+        }
+    });
+});
+
+//CREATE an employee
+app.post('/api/candidate', ({ body }, res) => {
+    const errors = inputCheckBody(body, 'first_name', 'last_name', 'role_id', 'manager_id');
+    if (errors) {
+        res.status(400).json({ error: errors });
+        return;
     }
-    console.log(row);
+    const sql = `INSERT INTO employees (first_name, last_name, role_id, manager_id)
+                VALUES (?,?,?,?)`;
+    const params = [body.first_name, body.last_name, body.role_id, body.manager_id];
+
+    db.query(sql, params, (err, result) => {
+        if   (err) {
+            res.status(400).json({ error: err.message });
+            return;
+        }
+        res.json({
+            message: 'success',
+            data: body
+        });
+    });
 });
 
 app.use((req, res) => {
