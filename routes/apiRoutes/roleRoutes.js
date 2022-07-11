@@ -55,4 +55,27 @@ router.delete('/role/:id', (req, res) => {
     });
   });
 
+  // CREATE a new role
+  router.post('/role', ({ body }, res) => {
+    const errors = inputCheckBody(body, 'title', 'salary', 'department_id');
+    if (errors) {
+        res.status(400).json({ error: errors });
+        return;
+    }
+    const sql = `INSERT INTO roles (title, salary, department_id)
+                VALUES (?,?,?)`;
+    const params = [body.title, body.salary, body.department_id];
+
+    db.query(sql, params, (err, result) => {
+        if   (err) {
+            res.status(400).json({ error: err.message });
+            return;
+        }
+        res.json({
+            message: 'success',
+            data: body
+        });
+    });
+});
+
   module.exports = router;
